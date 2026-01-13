@@ -1,0 +1,32 @@
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background-color: #f0f8ff;
+  color: #333;
+  margin-top: 50px;
+}
+
+h1 {
+  color: #1e90ff;
+}
+
+#streak {
+  font-size: 2em;
+  font-weight: bold;
+  color: #ff4500;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 1em;
+  background-color: #1e90ff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 20px;
+}
+
+button:hover {
+  background-color: #104e8b;
+}
