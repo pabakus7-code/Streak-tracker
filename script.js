@@ -1,37 +1,47 @@
-window.addEventListener("DOMContentLoaded", () => {
-  // ---- helpers ----
-  const pad2 = (n) => String(n).padStart(2, "0");
-  const todayISO = () => {
-    const d = new Date();
-    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-  };
-  const isoToPretty = (iso) => {
-    if (!iso) return "never";
-    const [y, m, d] = iso.split("-").map(Number);
-    return new Date(y, m - 1, d).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-  const daysBetween = (a, b) => {
-    const [y1, m1, d1] = a.split("-").map(Number);
-    const [y2, m2, d2] = b.split("-").map(Number);
-    const t1 = Date.UTC(y1, m1 - 1, d1);
-    const t2 = Date.UTC(y2, m2 - 1, d2);
-    return Math.floor((t2 - t1) / 86400000);
-  };
-  const clamp = (v, min, max) => Math.max(min, Math.min(max, v)));
-  const $ = (id) => document.getElementById(id);
+// ---- helpers ----
+const pad2 = (n) => String(n).padStart(2, "0");
+const todayISO = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+};
+const isoToPretty = (iso) => {
+  if (!iso) return "never";
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
+const daysBetween = (a, b) => {
+  const [y1, m1, d1] = a.split("-").map(Number);
+  const [y2, m2, d2] = b.split("-").map(Number);
+  const t1 = Date.UTC(y1, m1 - 1, d1);
+  const t2 = Date.UTC(y2, m2 - 1, d2);
+  return Math.floor((t2 - t1) / 86400000);
+};
+const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+const $ = (id) => document.getElementById(id);
 
-  // ---- elements ----
+// ---- config ----
+const MILESTONES = [1, 5, 10, 30, 50, 100, 500, 1000];
+
+// ---- storage keys ----
+const KEYS = {
+  count: "streak_count",
+  last: "streak_last_checked",
+  name: "streak_name",
+  theme: "theme",
+  remindTime: "remind_time", // "HH:MM"
+};
+
+function init() {
   const streakEl = $("streak");
   const lastCheckedEl = $("lastChecked");
   const statusEl = $("status");
 
   const checkInBtn = $("checkIn");
   const resetBtn = $("reset");
-
   const themeToggle = $("themeToggle");
 
   const nameDisplay = $("nameDisplay");
@@ -39,31 +49,23 @@ window.addEventListener("DOMContentLoaded", () => {
   const nameInput = $("nameInput");
   const nameSave = $("nameSave");
 
-  // Milestones UI
   const milestoneTicksEl = $("milestoneTicks");
   const milestoneFillEl = $("milestoneFill");
   const milestoneNextEl = $("milestoneNext");
 
-  // Modal + confetti
   const milestoneModal = $("milestoneModal");
   const milestoneNumber = $("milestoneNumber");
   const milestoneClose = $("milestoneClose");
   const confettiLayer = $("confettiLayer");
 
-  // ---- config ----
-  const MILESTONES = [1, 5, 10, 30, 50, 100, 500, 1000];
+  const enableNotifs = $("enableNotifs");
+  const remindTime = $("remindTime");
+  const saveRemindTime = $("saveRemindTime");
+  const notifStatus = $("notifStatus");
 
-  // ---- storage keys ----
-  const KEYS = {
-    count: "streak_count",
-    last: "streak_last_checked",
-    name: "streak_name",
-    theme: "theme",
-  };
-
-  function setStatus(msg) {
+  const setStatus = (msg) => {
     if (statusEl) statusEl.textContent = msg || "";
-  }
+  };
 
   // ---- theme ----
   function applyTheme(theme) {
@@ -95,46 +97,27 @@ window.addEventListener("DOMContentLoaded", () => {
     if (nameDisplay) nameDisplay.textContent = val;
     document.title = val;
     closeNameEditor();
-    setStatus("");
   }
 
-  // ---- milestones (your design) ----
-  function buildMilestoneTicks() {
-    if (!milestoneTicksEl) return;
-    milestoneTicksEl.innerHTML = "";
-    for (const m of MILESTONES) {
-      const span = document.createElement("span");
-      span.className = "tick";
-      span.dataset.milestone = String(m);
-      span.textContent = String(m);
-      milestoneTicksEl.appendChild(span);
-    }
-  }
-
-  function getNextMilestone(count) {
-    return MILESTONES.find((m) => count < m) || null;
-  }
+  // ---- milestone helpers ----
+  const getNextMilestone = (count) => MILESTONES.find((m) => count < m) || null;
 
   function updateMilestones(count) {
     const next = getNextMilestone(count);
 
     if (milestoneNextEl) {
-      if (next === null) milestoneNextEl.textContent = "Next: Completed 🎉";
-      else milestoneNextEl.textContent = `Next: ${next} (${next - count} left)`;
+      milestoneNextEl.textContent = next === null ? "Next: Completed 🎉" : `Next: ${next}`;
     }
 
-    // highlight ticks
     if (milestoneTicksEl) {
       const ticks = milestoneTicksEl.querySelectorAll(".tick");
       ticks.forEach((t) => {
-        const m = Number(t.dataset.milestone || "0");
+        const m = Number(t.dataset.m || "0");
         t.classList.toggle("done", count >= m);
         t.classList.toggle("next", next !== null && m === next);
       });
     }
 
-    // fill bar in "segments" evenly spaced between ticks:
-    // each gap between milestones is equal width visually
     if (!milestoneFillEl) return;
 
     if (next === null) {
@@ -155,21 +138,10 @@ window.addEventListener("DOMContentLoaded", () => {
     milestoneFillEl.style.width = `${clamp(segmentProgress * 100, 0, 100)}%`;
   }
 
-  // ---- milestone celebration ----
-  function openMilestoneModal(milestone) {
-    if (!milestoneModal || !milestoneNumber) return;
-    milestoneNumber.textContent = String(milestone);
-    milestoneModal.classList.remove("hidden");
-  }
-  function closeMilestoneModal() {
-    if (!milestoneModal) return;
-    milestoneModal.classList.add("hidden");
-  }
-
+  // ---- confetti + modal ----
   function burstConfetti() {
     if (!confettiLayer) return;
-
-    const pieces = 120;
+    const pieces = 110;
     const colors = [
       "rgba(139,115,255,0.95)",
       "rgba(255,92,92,0.90)",
@@ -177,24 +149,28 @@ window.addEventListener("DOMContentLoaded", () => {
       "rgba(255,206,86,0.95)",
       "rgba(0,206,255,0.90)",
     ];
-
     const w = window.innerWidth;
 
     for (let i = 0; i < pieces; i++) {
       const c = document.createElement("div");
       c.className = "confetti";
-
-      const x = Math.random() * w;
-      const startY = -20 - Math.random() * 60;
-
-      c.style.left = `${x}px`;
-      c.style.top = `${startY}px`;
+      c.style.left = `${Math.random() * w}px`;
+      c.style.top = `${-20 - Math.random() * 60}px`;
       c.style.background = colors[Math.floor(Math.random() * colors.length)];
       c.style.animationDuration = `${850 + Math.random() * 650}ms`;
-
       confettiLayer.appendChild(c);
       setTimeout(() => c.remove(), 1500);
     }
+  }
+
+  function openMilestoneModal(m) {
+    if (!milestoneModal || !milestoneNumber) return;
+    milestoneNumber.textContent = String(m);
+    milestoneModal.classList.remove("hidden");
+  }
+  function closeMilestoneModal() {
+    if (!milestoneModal) return;
+    milestoneModal.classList.add("hidden");
   }
 
   // ---- streak logic ----
@@ -211,6 +187,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (lastCheckedEl) lastCheckedEl.textContent = `Last checked: ${isoToPretty(last)}`;
 
     applyTheme(theme);
+    updateMilestones(count);
 
     const today = todayISO();
     if (checkInBtn) {
@@ -223,21 +200,24 @@ window.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    updateMilestones(count);
+    // reminder time load
+    if (remindTime) {
+      const saved = localStorage.getItem(KEYS.remindTime) || "";
+      if (!remindTime.value) remindTime.value = saved;
+    }
   }
 
   function checkIn() {
     const today = todayISO();
     const last = localStorage.getItem(KEYS.last) || "";
     let count = Number(localStorage.getItem(KEYS.count) || "0");
+    const before = count;
 
     if (last === today) {
       setStatus("Already checked in today ✅");
       render();
       return;
     }
-
-    const before = count;
 
     if (!last) {
       count = 1;
@@ -256,11 +236,10 @@ window.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem(KEYS.count, String(count));
     localStorage.setItem(KEYS.last, today);
 
-    const hitMilestone = MILESTONES.includes(count) && count !== before;
-
     render();
 
-    if (hitMilestone) {
+    // milestone celebration
+    if (MILESTONES.includes(count) && count !== before) {
       burstConfetti();
       openMilestoneModal(count);
     }
@@ -273,47 +252,80 @@ window.addEventListener("DOMContentLoaded", () => {
     render();
   }
 
-  // ---- wire events ----
-  if (themeToggle) themeToggle.addEventListener("click", toggleTheme);
-  if (checkInBtn) checkInBtn.addEventListener("click", checkIn);
-  if (resetBtn) resetBtn.addEventListener("click", resetStreak);
-
-  if (nameDisplay) {
-    nameDisplay.addEventListener("click", openNameEditor);
-    nameDisplay.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") openNameEditor();
-    });
-  }
-  if (nameSave) nameSave.addEventListener("click", saveName);
-  if (nameInput) {
-    nameInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") saveName();
-      if (e.key === "Escape") closeNameEditor();
-    });
+  // ---- reminders (basic UI feedback + saves time) ----
+  function setNotifStatus(msg) {
+    if (notifStatus) notifStatus.textContent = msg || "";
   }
 
-  // Click outside editor closes it
+  async function enableReminders() {
+    try {
+      setNotifStatus("Opening permission prompt…");
+      if (!window.OneSignalDeferred) {
+        setNotifStatus("OneSignal not loaded yet. Refresh and try again.");
+        return;
+      }
+
+      window.OneSignalDeferred.push(async function(OneSignal) {
+        const perm = await OneSignal.Notifications.permission;
+        if (perm === true) {
+          setNotifStatus("Notifications already allowed ✅");
+        } else {
+          // This triggers the browser prompt (if allowed to show)
+          await OneSignal.Notifications.requestPermission();
+          const perm2 = await OneSignal.Notifications.permission;
+          setNotifStatus(perm2 === true ? "Notifications allowed ✅" : "Notifications not allowed.");
+        }
+      });
+    } catch (e) {
+      setNotifStatus("Notifications error. Check console.");
+    }
+  }
+
+  function saveTime() {
+    const val = (remindTime?.value || "").trim();
+    if (!val) {
+      setNotifStatus("Pick a time first.");
+      return;
+    }
+    localStorage.setItem(KEYS.remindTime, val);
+    setNotifStatus(`Saved ✅ Daily reminder time: ${val}`);
+  }
+
+  // ---- wire events (THIS is what was missing for you before) ----
+  themeToggle?.addEventListener("click", toggleTheme);
+  checkInBtn?.addEventListener("click", checkIn);
+  resetBtn?.addEventListener("click", resetStreak);
+
+  nameDisplay?.addEventListener("click", openNameEditor);
+  nameDisplay?.addEventListener("keydown", (e) => { if (e.key === "Enter") openNameEditor(); });
+  nameSave?.addEventListener("click", saveName);
+  nameInput?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") saveName();
+    if (e.key === "Escape") closeNameEditor();
+  });
+
   document.addEventListener("click", (e) => {
     if (!nameEditor || nameEditor.classList.contains("hidden")) return;
-    const clickedInside =
-      nameEditor.contains(e.target) || (nameDisplay && nameDisplay.contains(e.target));
+    const clickedInside = nameEditor.contains(e.target) || nameDisplay?.contains(e.target);
     if (!clickedInside) closeNameEditor();
   });
 
-  // ✅ modal close: button, click outside, ESC
-  if (milestoneClose) milestoneClose.addEventListener("click", closeMilestoneModal);
+  milestoneClose?.addEventListener("click", closeMilestoneModal);
+  milestoneModal?.addEventListener("click", (e) => { if (e.target === milestoneModal) closeMilestoneModal(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMilestoneModal(); });
 
-  if (milestoneModal) {
-    milestoneModal.addEventListener("click", (e) => {
-      if (e.target === milestoneModal) closeMilestoneModal();
-    });
-  }
+  enableNotifs?.addEventListener("click", enableReminders);
+  saveRemindTime?.addEventListener("click", saveTime);
 
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeMilestoneModal();
-  });
-
-  // ---- init ----
-  buildMilestoneTicks();
   render();
+}
+
+// ✅ This makes sure it always runs AFTER the HTML exists
+document.addEventListener("DOMContentLoaded", () => {
+  try {
+    init();
+  } catch (err) {
+    const status = document.getElementById("status");
+    if (status) status.textContent = "JS crashed. Open Console and screenshot the error.";
+  }
 });
