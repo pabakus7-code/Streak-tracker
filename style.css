@@ -1,4 +1,3 @@
-/* LIGHT by default */
 :root{
   --bg: #f6f7fb;
   --card: #ffffff;
@@ -14,13 +13,12 @@
   --ghost2: rgba(15,23,42,0.10);
 }
 
-/* DARK mode (higher contrast) */
 html[data-theme="dark"]{
   --bg: #070a12;
-  --card: rgba(17, 24, 39, 0.86);
+  --card: rgba(17, 24, 39, 0.90);
   --text: #f3f7ff;
-  --muted: rgba(243,247,255,0.72);
-  --border: rgba(255,255,255,0.14);
+  --muted: rgba(243,247,255,0.74);
+  --border: rgba(255,255,255,0.16);
   --shadow: 0 18px 70px rgba(0,0,0,0.55);
 
   --primary: #8b73ff;
@@ -41,6 +39,11 @@ body{
     var(--bg);
   color: var(--text);
   min-height: 100vh;
+
+  /* ✅ less whitespace: keep card centered nicely */
+  display: grid;
+  place-items: center;
+  padding: 18px;
 }
 
 .themeBtn{
@@ -59,16 +62,14 @@ body{
 }
 
 .wrap{
-  width: min(720px, 92vw);
-  margin: 0 auto;
-  padding: 80px 0 36px;
+  width: min(820px, 96vw); /* wider = less empty space */
 }
 
 .card{
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 22px;
-  padding: 18px;
+  padding: 20px;
   box-shadow: var(--shadow);
   backdrop-filter: blur(12px);
 }
@@ -97,13 +98,13 @@ body{
   display: flex;
   gap: 10px;
   width: 100%;
-  max-width: 520px;
+  max-width: 560px;
 }
 
 .hidden{ display: none !important; }
 
 .input{
-  flex: 1;
+  width: 100%;
   padding: 12px 12px;
   border-radius: 14px;
   border: 1px solid var(--border);
@@ -113,7 +114,7 @@ body{
 }
 
 .big{
-  margin: 18px 0 8px;
+  margin: 18px 0 6px;
   display: flex;
   align-items: baseline;
   justify-content: center;
@@ -121,8 +122,8 @@ body{
 }
 
 .bigNum{
-  font-size: 66px;
-  font-weight: 900;
+  font-size: 68px;
+  font-weight: 950;
   letter-spacing: -1px;
 }
 
@@ -135,7 +136,7 @@ body{
 .meta{
   display: grid;
   gap: 10px;
-  margin-top: 8px;
+  margin-top: 10px;
   justify-items: center;
 }
 
@@ -168,8 +169,8 @@ body{
 .buttons{
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: 14px;
+  gap: 12px;
+  margin-top: 16px;
 }
 
 .btn{
@@ -177,7 +178,7 @@ body{
   border-radius: 16px;
   padding: 12px 14px;
   cursor: pointer;
-  font-weight: 900;
+  font-weight: 950;
   color: var(--text);
   background: var(--ghost2);
 }
@@ -207,7 +208,7 @@ body{
   text-align: center;
 }
 
-/* ✅ Milestones (your design) */
+/* ✅ Milestones (your sketch) */
 .milestonesWrap{
   margin-top: 18px;
   padding-top: 16px;
@@ -219,7 +220,7 @@ body{
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .milestonesTitle{
@@ -230,22 +231,21 @@ body{
 .milestonesNext{
   color: var(--muted);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
 }
 
-/* numbers row */
 .milestoneTicks{
   display: flex;
   justify-content: space-between;
   gap: 8px;
   font-size: 13px;
   color: var(--muted);
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   user-select: none;
 }
 
 .tick{
-  padding: 6px 8px;
+  padding: 7px 10px;
   border-radius: 999px;
   border: 1px solid transparent;
   white-space: nowrap;
@@ -255,17 +255,16 @@ body{
   color: var(--text);
   border-color: var(--border);
   background: var(--ghost2);
-  font-weight: 900;
+  font-weight: 950;
 }
 
 .tick.next{
   color: var(--text);
   border-color: rgba(139,115,255,0.55);
-  background: rgba(139,115,255,0.16);
-  font-weight: 900;
+  background: rgba(139,115,255,0.18);
+  font-weight: 950;
 }
 
-/* bar */
 .milestoneTrack{
   width: 100%;
   height: 14px;
@@ -283,7 +282,32 @@ body{
   transition: width 280ms ease;
 }
 
-/* Modal + Confetti */
+/* ✅ Reminders layout */
+.reminders{
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.remindersRow{
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.timeBox{
+  display: grid;
+  gap: 6px;
+}
+
+.label{
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+/* Modal + confetti */
 .modal{
   position: fixed;
   inset: 0;
@@ -359,5 +383,6 @@ body{
   .buttons{ grid-template-columns: 1fr; }
   .nameEditor{ flex-direction: column; }
   .milestoneTicks{ font-size: 12px; }
-  .tick{ padding: 6px 6px; }
+  .tick{ padding: 6px 7px; }
+  .remindersRow{ grid-template-columns: 1fr; }
 }
