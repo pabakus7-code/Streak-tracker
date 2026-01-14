@@ -24,14 +24,13 @@ const daysBetween = (a, b) => {
 // Safe getter (prevents crashing)
 const $ = (id) => document.getElementById(id);
 
-// ---- elements (must match HTML) ----
+// ---- elements ----
 const streakEl = $("streak");
 const lastCheckedEl = $("lastChecked");
 const statusEl = $("status");
 
 const checkInBtn = $("checkIn");
 const resetBtn = $("reset");
-
 const themeToggle = $("themeToggle");
 
 // Name click-to-edit UI
@@ -42,7 +41,8 @@ const nameSave = $("nameSave");
 
 // Reminders UI
 const enableNotifsBtn = $("enableNotifs");
-const remindTimeSelect = $("remindTime");
+const remindTimeInput = $("remindTimeInput");
+const saveRemindTimeBtn = $("saveRemindTime");
 const notifStatusEl = $("notifStatus");
 
 // ---- storage keys ----
@@ -50,14 +50,13 @@ const KEYS = {
   count: "streak_count",
   last: "streak_last_checked", // YYYY-MM-DD
   name: "streak_name",
-  theme: "theme", // "light" | "dark"
-  remindTime: "remind_time_local", // "HH:MM"
+  theme: "theme",              // "light" | "dark"
+  remindTime: "remind_time_local" // "HH:MM"
 };
 
 function setStatus(msg) {
   if (statusEl) statusEl.textContent = msg || "";
 }
-
 function setNotifStatus(msg) {
   if (notifStatusEl) notifStatusEl.textContent = msg || "";
 }
@@ -66,10 +65,7 @@ function setNotifStatus(msg) {
 function applyTheme(theme) {
   document.documentElement.dataset.theme = theme;
   localStorage.setItem(KEYS.theme, theme);
-
-  // If theme is dark, show moon (you are in dark mode).
-  // If theme is light, show moon too? most people prefer: show opposite icon:
-  // We'll show moon when light (to switch to dark), sun when dark (to switch to light).
+  // show the opposite icon (what you'll switch to)
   if (themeToggle) themeToggle.textContent = theme === "dark" ? "☀️" : "🌙";
 }
 function toggleTheme() {
@@ -130,9 +126,9 @@ function render() {
     }
   }
 
-  // restore dropdown selection
-  if (remindTimeSelect && savedTime && remindTimeSelect.value !== savedTime) {
-    remindTimeSelect.value = savedTime;
+  // restore time input
+  if (remindTimeInput && savedTime && remindTimeInput.value !== savedTime) {
+    remindTimeInput.value = savedTime;
   }
 }
 
@@ -174,7 +170,6 @@ function resetStreak() {
 }
 
 // ---- OneSignal helpers ----
-// Run code once OneSignal is ready (won't crash if SDK hasn't loaded yet)
 function withOneSignal(fn) {
   try {
     window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -187,29 +182,73 @@ function withOneSignal(fn) {
   }
 }
 
+function formatNextReminder(timeHHMM) {
+  const [hh, mm] = timeHHMM.split(":").map(Number);
+  const now = new Date();
+  const next = new Date();
+  next.setHours(hh, mm, 0, 0);
+  if (next <= now) next.setDate(next.getDate() + 1);
+
+  const pretty = next.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  const day = next.toLocaleDateString([], { weekday: "short" });
+  return `Next reminder: ${pretty} (${day}) ✅`;
+}
+
+function snapTo30Minutes(timeHHMM) {
+  const [hh, mm] = timeHHMM.split(":").map(Number);
+  const snapped = mm < 15 ? 0 : mm < 45 ? 30 : 0;
+  let hour = hh;
+  if (mm >= 45) hour = (hh + 1) % 24;
+  return `${pad2(hour)}:${pad2(snapped)}`;
+}
+
 async function enableNotifications() {
+  const perm = typeof Notification !== "undefined" ? Notification.permission : "default";
+
+  if (perm === "granted") {
+    const savedTime = localStorage.getItem(KEYS.remindTime) || "";
+    setNotifStatus(savedTime ? formatNextReminder(savedTime) : "Reminders enabled ✅ Pick a time below.");
+    return;
+  }
+
+  if (perm === "denied") {
+    setNotifStatus("Notifications are blocked ❌ Allow them in browser settings to use reminders.");
+    return;
+  }
+
   setNotifStatus("Opening permission prompt…");
   withOneSignal(async (OneSignal) => {
-    // Ask permission
     await OneSignal.Notifications.requestPermission();
-    // If user allowed, this will be granted. If blocked, it stays denied.
-    setNotifStatus("If you clicked Allow, reminders are enabled ✅");
+
+    const after = typeof Notification !== "undefined" ? Notification.permission : "default";
+    if (after === "granted") {
+      const savedTime = localStorage.getItem(KEYS.remindTime) || "";
+      setNotifStatus(savedTime ? formatNextReminder(savedTime) : "Reminders enabled ✅ Pick a time below.");
+    } else {
+      setNotifStatus("Permission not granted. If you want reminders, click Allow next time.");
+    }
   });
 }
 
-async function saveReminderTimeTag(time) {
-  // Save on device too (so dropdown stays selected)
+async function saveReminderTimeTag(rawTime) {
+  if (!rawTime) return;
+
+  const time = snapTo30Minutes(rawTime);
+
+  if (remindTimeInput && remindTimeInput.value !== time) {
+    remindTimeInput.value = time;
+  }
+
   localStorage.setItem(KEYS.remindTime, time);
-  setNotifStatus(`Saving time ${time}…`);
+  setNotifStatus("Saving reminder time…");
 
   withOneSignal(async (OneSignal) => {
-    // Save per-user preference in OneSignal
     await OneSignal.User.addTag("remind_time", time);
-    setNotifStatus(`Reminder time saved: ${time} ✅`);
+    setNotifStatus(formatNextReminder(time));
   });
 }
 
-// ---- wire events (only if elements exist) ----
+// ---- wire events ----
 if (themeToggle) themeToggle.addEventListener("click", toggleTheme);
 if (checkInBtn) checkInBtn.addEventListener("click", checkIn);
 if (resetBtn) resetBtn.addEventListener("click", resetStreak);
@@ -243,13 +282,24 @@ if (enableNotifsBtn) {
   });
 }
 
-if (remindTimeSelect) {
-  remindTimeSelect.addEventListener("change", (e) => {
-    const time = e.target.value;
-    if (!time) return;
-    saveReminderTimeTag(time);
+if (saveRemindTimeBtn) {
+  saveRemindTimeBtn.addEventListener("click", () => {
+    saveReminderTimeTag(remindTimeInput?.value || "");
+  });
+}
+
+// Optional: auto-save on change
+if (remindTimeInput) {
+  remindTimeInput.addEventListener("change", (e) => {
+    saveReminderTimeTag(e.target.value);
   });
 }
 
 // Init
 render();
+
+// Show reminder status on load if already granted
+if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+  const savedTime = localStorage.getItem(KEYS.remindTime) || "";
+  setNotifStatus(savedTime ? formatNextReminder(savedTime) : "Reminders enabled ✅ Pick a time below.");
+}
