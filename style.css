@@ -95,7 +95,7 @@ body{
 .hidden{ display: none; }
 
 .input{
-  width: 100%;
+  flex: 1;
   padding: 12px 12px;
   border-radius: 14px;
   border: 1px solid var(--border);
@@ -199,39 +199,152 @@ body{
   text-align: center;
 }
 
-.reminders{
-  margin-top: 16px;
-  padding-top: 14px;
+/* ---------- Milestones ---------- */
+
+.milestonesWrap{
+  margin-top: 18px;
+  padding-top: 16px;
   border-top: 1px solid var(--border);
-  display: grid;
-  gap: 10px;
 }
 
-.remTitle{
+.milestonesTopRow{
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.milestonesTitle{
   font-weight: 800;
+  letter-spacing: 0.2px;
+}
+
+.milestonesNext{
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.milestoneBars{
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 10px;
+  align-items: end;
+  padding: 6px 0 2px;
+}
+
+.mBar{
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+}
+
+.mBarBox{
+  width: 100%;
+  height: 90px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--ghost);
+  overflow: hidden;
+  position: relative;
+}
+
+.mBarFill{
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 0%;
+  background: linear-gradient(180deg, rgba(124,92,255,0.95), rgba(124,92,255,0.55));
+  border-top-left-radius: 14px;
+  border-top-right-radius: 14px;
+  transition: height 280ms ease;
+}
+
+.mBarDone .mBarFill{
+  background: linear-gradient(180deg, rgba(124,92,255,1), rgba(124,92,255,0.75));
+}
+
+.mBarLabel{
+  font-size: 12px;
+  color: var(--muted);
   text-align: center;
 }
 
-.remRow{
+.mBarDone .mBarLabel{
+  color: var(--text);
+  font-weight: 700;
+}
+
+/* ---------- Modal + Confetti ---------- */
+
+.modal{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.50);
   display: grid;
-  gap: 10px;
-  grid-template-columns: 1fr 1fr auto;
-  align-items: end;
+  place-items: center;
+  z-index: 10000;
+  padding: 16px;
 }
 
-.label{
-  font-size: 12px;
-  color: var(--muted);
-  margin-left: 4px;
+.modalCard{
+  width: min(420px, 92vw);
+  border-radius: 22px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  padding: 18px;
+  text-align: center;
 }
 
-.chk{
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.modalBadge{
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--ghost);
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.modalNumber{
+  font-size: 72px;
+  font-weight: 900;
+  letter-spacing: -1px;
+  margin: 6px 0 0;
+}
+
+.modalText{
   color: var(--muted);
-  font-size: 13px;
-  justify-content: center;
+  font-weight: 700;
+  margin-top: -6px;
+}
+
+.modalBtn{
+  margin-top: 14px;
+  width: 100%;
+}
+
+.confettiLayer{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.confetti{
+  position: absolute;
+  width: 10px;
+  height: 14px;
+  border-radius: 3px;
+  opacity: 0.95;
+  animation: confetti-fall 1100ms ease-out forwards;
+}
+
+@keyframes confetti-fall{
+  0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(420px) rotate(540deg); opacity: 0; }
 }
 
 /* Mobile */
@@ -239,5 +352,5 @@ body{
   .bigNum{ font-size: 56px; }
   .buttons{ grid-template-columns: 1fr; }
   .nameEditor{ flex-direction: column; }
-  .remRow{ grid-template-columns: 1fr; }
+  .mBarBox{ height: 78px; }
 }
