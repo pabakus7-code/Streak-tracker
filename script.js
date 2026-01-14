@@ -21,7 +21,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const t2 = Date.UTC(y2, m2 - 1, d2);
     return Math.floor((t2 - t1) / 86400000);
   };
-  const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+  const clamp = (v, min, max) => Math.max(min, Math.min(max, v)));
   const $ = (id) => document.getElementById(id);
 
   // ---- elements ----
@@ -34,14 +34,14 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const themeToggle = $("themeToggle");
 
-  // Name click-to-edit UI
   const nameDisplay = $("nameDisplay");
   const nameEditor = $("nameEditor");
   const nameInput = $("nameInput");
   const nameSave = $("nameSave");
 
   // Milestones UI
-  const milestoneBarsEl = $("milestoneBars");
+  const milestoneTicksEl = $("milestoneTicks");
+  const milestoneFillEl = $("milestoneFill");
   const milestoneNextEl = $("milestoneNext");
 
   // Modal + confetti
@@ -90,10 +90,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
   function saveName() {
     const val = (nameInput?.value || "").trim();
-    if (!val) {
-      setStatus("Type a name first.");
-      return;
-    }
+    if (!val) return;
     localStorage.setItem(KEYS.name, val);
     if (nameDisplay) nameDisplay.textContent = val;
     document.title = val;
@@ -101,31 +98,16 @@ window.addEventListener("DOMContentLoaded", () => {
     setStatus("");
   }
 
-  // ---- milestone UI ----
-  function buildMilestoneBars() {
-    if (!milestoneBarsEl) return;
-    milestoneBarsEl.innerHTML = "";
-
+  // ---- milestones (your design) ----
+  function buildMilestoneTicks() {
+    if (!milestoneTicksEl) return;
+    milestoneTicksEl.innerHTML = "";
     for (const m of MILESTONES) {
-      const wrap = document.createElement("div");
-      wrap.className = "mBar";
-      wrap.dataset.milestone = String(m);
-
-      const box = document.createElement("div");
-      box.className = "mBarBox";
-
-      const fill = document.createElement("div");
-      fill.className = "mBarFill";
-      fill.style.height = "0%";
-
-      const label = document.createElement("div");
-      label.className = "mBarLabel";
-      label.textContent = String(m);
-
-      box.appendChild(fill);
-      wrap.appendChild(box);
-      wrap.appendChild(label);
-      milestoneBarsEl.appendChild(wrap);
+      const span = document.createElement("span");
+      span.className = "tick";
+      span.dataset.milestone = String(m);
+      span.textContent = String(m);
+      milestoneTicksEl.appendChild(span);
     }
   }
 
@@ -133,44 +115,44 @@ window.addEventListener("DOMContentLoaded", () => {
     return MILESTONES.find((m) => count < m) || null;
   }
 
-  function getPrevMilestone(count) {
-    let prev = 0;
-    for (const m of MILESTONES) if (m <= count) prev = m;
-    return prev;
-  }
-
   function updateMilestones(count) {
-    if (!milestoneBarsEl) return;
-
     const next = getNextMilestone(count);
-    const prev = getPrevMilestone(count);
 
     if (milestoneNextEl) {
       if (next === null) milestoneNextEl.textContent = "Next: Completed 🎉";
       else milestoneNextEl.textContent = `Next: ${next} (${next - count} left)`;
     }
 
-    const bars = milestoneBarsEl.querySelectorAll(".mBar");
-    bars.forEach((bar) => {
-      const m = Number(bar.dataset.milestone || "0");
-      const fill = bar.querySelector(".mBarFill");
+    // highlight ticks
+    if (milestoneTicksEl) {
+      const ticks = milestoneTicksEl.querySelectorAll(".tick");
+      ticks.forEach((t) => {
+        const m = Number(t.dataset.milestone || "0");
+        t.classList.toggle("done", count >= m);
+        t.classList.toggle("next", next !== null && m === next);
+      });
+    }
 
-      if (count >= m) {
-        bar.classList.add("mBarDone");
-        if (fill) fill.style.height = "100%";
-        return;
-      }
+    // fill bar in "segments" evenly spaced between ticks:
+    // each gap between milestones is equal width visually
+    if (!milestoneFillEl) return;
 
-      bar.classList.remove("mBarDone");
+    if (next === null) {
+      milestoneFillEl.style.width = "100%";
+      return;
+    }
 
-      if (next !== null && m === next) {
-        const span = Math.max(1, next - prev);
-        const pct = clamp(((count - prev) / span) * 100, 0, 100);
-        if (fill) fill.style.height = `${pct}%`;
-      } else {
-        if (fill) fill.style.height = "0%";
-      }
-    });
+    const idxNext = MILESTONES.indexOf(next);
+    const idxPrev = Math.max(0, idxNext - 1);
+    const prev = MILESTONES[idxPrev];
+
+    const span = Math.max(1, next - prev);
+    const frac = clamp((count - prev) / span, 0, 1);
+
+    const totalSegments = MILESTONES.length - 1;
+    const segmentProgress = (idxPrev + frac) / totalSegments;
+
+    milestoneFillEl.style.width = `${clamp(segmentProgress * 100, 0, 100)}%`;
   }
 
   // ---- milestone celebration ----
@@ -179,7 +161,6 @@ window.addEventListener("DOMContentLoaded", () => {
     milestoneNumber.textContent = String(milestone);
     milestoneModal.classList.remove("hidden");
   }
-
   function closeMilestoneModal() {
     if (!milestoneModal) return;
     milestoneModal.classList.add("hidden");
@@ -319,32 +300,20 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!clickedInside) closeNameEditor();
   });
 
-  // ✅ Modal close: button, clicking outside, ESC, and touch
-  function wireModalClose() {
-    if (milestoneClose) {
-      milestoneClose.addEventListener("click", closeMilestoneModal);
-      milestoneClose.addEventListener("touchstart", (e) => {
-        e.preventDefault();
-        closeMilestoneModal();
-      }, { passive: false });
-    }
+  // ✅ modal close: button, click outside, ESC
+  if (milestoneClose) milestoneClose.addEventListener("click", closeMilestoneModal);
 
-    if (milestoneModal) {
-      milestoneModal.addEventListener("click", (e) => {
-        if (e.target === milestoneModal) closeMilestoneModal();
-      });
-      milestoneModal.addEventListener("touchstart", (e) => {
-        if (e.target === milestoneModal) closeMilestoneModal();
-      }, { passive: true });
-    }
-
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") closeMilestoneModal();
+  if (milestoneModal) {
+    milestoneModal.addEventListener("click", (e) => {
+      if (e.target === milestoneModal) closeMilestoneModal();
     });
   }
 
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeMilestoneModal();
+  });
+
   // ---- init ----
-  buildMilestoneBars();
-  wireModalClose();
+  buildMilestoneTicks();
   render();
 });
