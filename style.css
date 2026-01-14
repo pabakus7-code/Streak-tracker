@@ -199,6 +199,34 @@ body{
   text-align: center;
 }
 
+/* --- Reminders section --- */
+.reminders{
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
+.label{
+  width: 100%;
+  max-width: 520px;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.reminders .input{
+  max-width: 520px;
+  width: 100%;
+}
+
+.reminders .btnGhost{
+  width: 100%;
+  max-width: 520px;
+}
+
 /* Mobile */
 @media (max-width: 520px){
   .bigNum{ font-size: 56px; }
