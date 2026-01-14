@@ -6,30 +6,27 @@
   <title>Streak Tracker</title>
   <link rel="stylesheet" href="style.css" />
 
-  <!-- OneSignal (Web SDK v16) -->
+  <!-- OneSignal -->
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script>
-    // Detect GitHub Pages project path automatically:
-    // https://username.github.io/REPO_NAME/
-    const __repo = (location.hostname.endsWith("github.io"))
-      ? (location.pathname.split("/")[1] || "")
-      : "";
-
-    const __scope = __repo ? `/${__repo}/` : "/";
-    const __swPath = __repo ? `${__repo}/OneSignalSDKWorker.js` : "OneSignalSDKWorker.js";
-
+    // Keep this simple so it won't crash your page if OneSignal isn't ready yet
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     OneSignalDeferred.push(async function(OneSignal) {
-      await OneSignal.init({
-        appId: "9f5f66ba-cf0f-489b-935c-be80b53795bc",
+      try {
+        const basePath = location.pathname.endsWith("/")
+          ? location.pathname
+          : location.pathname.substring(0, location.pathname.lastIndexOf("/") + 1);
 
-        // IMPORTANT for GitHub Pages project sites:
-        serviceWorkerParam: { scope: __scope },
-        serviceWorkerPath: __swPath,
-
-        // Optional but nice:
-        autoResubscribe: true,
-      });
+        await OneSignal.init({
+          appId: "9f5f66ba-cf0f-489b-935c-be80b53795bc",
+          // Helps GitHub Pages project sites (your site is /Streak-tracker/)
+          serviceWorkerPath: basePath + "OneSignalSDKWorker.js",
+          serviceWorkerUpdaterPath: basePath + "OneSignalSDKUpdaterWorker.js",
+        });
+      } catch (e) {
+        // silently ignore so the app still works
+        console.warn("OneSignal init failed:", e);
+      }
     });
   </script>
 </head>
@@ -79,31 +76,31 @@
         You can only check in once per day. Miss a day and it resets.
       </p>
 
-      <!-- Reminders -->
-      <div class="reminders">
-        <div class="remTitle">Reminders</div>
-
-        <button id="enableNotifs" class="btn btnGhost" type="button">Enable reminders</button>
-
-        <div class="remRow">
-          <label class="label" for="remindTime">Daily reminder time</label>
-
-          <!-- This is the “alarm wheel” on mobile -->
-          <input id="remindTime" class="input" type="time" step="1800" />
-          <button id="saveRemindTime" class="btn btnGhost" type="button">Save time</button>
+      <!-- Milestones graph -->
+      <div class="milestonesWrap">
+        <div class="milestonesTopRow">
+          <div class="milestonesTitle">Milestones</div>
+          <div id="milestoneNext" class="milestonesNext">Next: —</div>
         </div>
 
-        <label class="chk">
-          <input id="repeat30" type="checkbox" />
-          Repeat every 30 mins (only while this tab is open)
-        </label>
-
-        <div id="nextReminder" class="status"></div>
-        <div id="notifStatus" class="status"></div>
+        <div id="milestoneBars" class="milestoneBars" aria-label="Milestone progress bar graph"></div>
       </div>
 
     </section>
   </main>
+
+  <!-- Milestone popup -->
+  <div id="milestoneModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Milestone reached">
+    <div class="modalCard">
+      <div class="modalBadge">🏆 Milestone!</div>
+      <div id="milestoneNumber" class="modalNumber">0</div>
+      <div class="modalText">days</div>
+      <button id="milestoneClose" class="btn btnGhost modalBtn" type="button">Close</button>
+    </div>
+  </div>
+
+  <!-- Confetti layer -->
+  <div id="confettiLayer" class="confettiLayer" aria-hidden="true"></div>
 
   <script src="script.js"></script>
 </body>
