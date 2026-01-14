@@ -6,13 +6,29 @@
   <title>Streak Tracker</title>
   <link rel="stylesheet" href="style.css" />
 
-  <!-- OneSignal -->
+  <!-- OneSignal (Web SDK v16) -->
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script>
+    // Detect GitHub Pages project path automatically:
+    // https://username.github.io/REPO_NAME/
+    const __repo = (location.hostname.endsWith("github.io"))
+      ? (location.pathname.split("/")[1] || "")
+      : "";
+
+    const __scope = __repo ? `/${__repo}/` : "/";
+    const __swPath = __repo ? `${__repo}/OneSignalSDKWorker.js` : "OneSignalSDKWorker.js";
+
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     OneSignalDeferred.push(async function(OneSignal) {
       await OneSignal.init({
-        appId: "9f5f66ba-cf0f-489b-935c-be80b53795bc"
+        appId: "9f5f66ba-cf0f-489b-935c-be80b53795bc",
+
+        // IMPORTANT for GitHub Pages project sites:
+        serviceWorkerParam: { scope: __scope },
+        serviceWorkerPath: __swPath,
+
+        // Optional but nice:
+        autoResubscribe: true,
       });
     });
   </script>
@@ -63,16 +79,26 @@
         You can only check in once per day. Miss a day and it resets.
       </p>
 
-      <!-- Reminders (alarm-style picker) -->
+      <!-- Reminders -->
       <div class="reminders">
+        <div class="remTitle">Reminders</div>
+
         <button id="enableNotifs" class="btn btnGhost" type="button">Enable reminders</button>
 
-        <label class="label" for="remindTimeInput">Daily reminder time</label>
-        <div class="timeRow">
-          <input id="remindTimeInput" class="input" type="time" step="1800" />
+        <div class="remRow">
+          <label class="label" for="remindTime">Daily reminder time</label>
+
+          <!-- This is the “alarm wheel” on mobile -->
+          <input id="remindTime" class="input" type="time" step="1800" />
           <button id="saveRemindTime" class="btn btnGhost" type="button">Save time</button>
         </div>
 
+        <label class="chk">
+          <input id="repeat30" type="checkbox" />
+          Repeat every 30 mins (only while this tab is open)
+        </label>
+
+        <div id="nextReminder" class="status"></div>
         <div id="notifStatus" class="status"></div>
       </div>
 
