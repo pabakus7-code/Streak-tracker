@@ -13,7 +13,8 @@
     OneSignalDeferred.push(async function(OneSignal) {
       await OneSignal.init({
         appId: "9f5f66ba-cf0f-489b-935c-be80b53795bc",
-        // GitHub Pages project site (repo name folder)
+
+        // IMPORTANT for GitHub Pages "project site" (repo name folder):
         serviceWorkerPath: "/Streak-tracker/OneSignalSDKWorker.js",
         serviceWorkerUpdaterPath: "/Streak-tracker/OneSignalSDKUpdaterWorker.js",
         serviceWorkerParam: { scope: "/Streak-tracker/" }
@@ -29,7 +30,7 @@
   <main class="wrap">
     <section class="card">
 
-      <!-- Title / name editor -->
+      <!-- Name -->
       <div class="nameArea">
         <h1 id="nameDisplay" class="nameDisplay" tabindex="0">Streak Tracker</h1>
 
@@ -40,12 +41,13 @@
         </div>
       </div>
 
-      <!-- Big number -->
+      <!-- Big streak -->
       <div class="big">
         <div class="bigNum" id="streak">0</div>
         <div class="bigText">days</div>
       </div>
 
+      <!-- Meta -->
       <div class="meta">
         <div class="pill">
           <span class="dot"></span>
@@ -60,58 +62,52 @@
         <button id="reset" class="btn btnDanger" type="button">Reset</button>
       </div>
 
-      <p class="hint">You can only check in once per day. Miss a day and it resets.</p>
-
-      <hr class="sep" />
+      <p class="hint">
+        You can only check in once per day. Miss a day and it resets.
+      </p>
 
       <!-- Milestones -->
-      <div class="milestones">
-        <div class="milestoneHeader">
-          <div class="milestoneTitle">Milestones</div>
-          <div class="milestoneNext">Next: <span id="nextMilestone">—</span></div>
+      <section class="msSection">
+        <div class="msHeader">
+          <h2 class="msTitle">Milestones</h2>
+          <div id="msNext" class="msNext">Next: —</div>
         </div>
 
-        <!-- numbers row like your sketch -->
-        <div id="milestoneRow" class="milestoneRow" aria-label="Milestones"></div>
+        <div id="msChips" class="msChips"></div>
 
-        <!-- progress bar -->
-        <div class="bar">
-          <div id="barFill" class="barFill"></div>
+        <div class="msBar">
+          <div id="msFill" class="msFill"></div>
         </div>
-      </div>
-
-      <hr class="sep" />
+      </section>
 
       <!-- Reminders -->
-      <div class="reminders">
+      <section class="remSection">
         <div class="remRow">
           <button id="enableNotifs" class="btn btnGhost" type="button">Enable reminders</button>
 
-          <div class="timeBox">
+          <div class="remPick">
             <label class="label" for="remindTime">Daily reminder time</label>
+            <!-- time input = scroll wheels on mobile -->
             <input id="remindTime" class="input" type="time" step="60" />
           </div>
 
-          <button id="saveRemindTime" class="btn btnGhost" type="button">Save time</button>
+          <button id="saveReminder" class="btn btnGhost" type="button">Save time</button>
         </div>
 
-        <div class="status" id="notifStatus"></div>
-        <div class="smallMuted" id="nextReminder"></div>
-      </div>
+        <div id="notifStatus" class="status"></div>
+      </section>
 
     </section>
   </main>
 
-  <!-- Confetti canvas -->
-  <canvas id="confetti" class="confetti" aria-hidden="true"></canvas>
-
-  <!-- Milestone modal -->
-  <div id="milestoneModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Milestone">
-    <div class="modalCard">
-      <button id="modalClose" class="modalClose" type="button" aria-label="Close">✕</button>
-      <div class="modalNum" id="modalNum">10</div>
-      <div class="modalText">Days milestone 🎉</div>
-      <div class="modalSub">Keep going.</div>
+  <!-- Milestone popup -->
+  <div id="msOverlay" class="msOverlay hidden" aria-hidden="true">
+    <div class="msModal" role="dialog" aria-modal="true" aria-label="Milestone reached">
+      <button id="msClose" class="msClose" type="button" aria-label="Close">×</button>
+      <div id="msBig" class="msBigNum">0</div>
+      <div class="msBigText">Days milestone 🎉</div>
+      <div class="msBigSub">Keep going.</div>
+      <canvas id="confetti" class="confetti"></canvas>
     </div>
   </div>
 
